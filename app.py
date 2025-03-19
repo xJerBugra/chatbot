@@ -1,11 +1,13 @@
 import gradio as gr
 from huggingface_hub import InferenceClient
+from flask import Flask
 
 """
 For more information on `huggingface_hub` Inference API support, please check the docs: https://huggingface.co/docs/huggingface_hub/v0.22.2/en/guides/inference
 """
 client = InferenceClient("HuggingFaceH4/zephyr-7b-beta")
 
+app = Flask(__name__)
 
 def respond(
     message,
@@ -39,7 +41,6 @@ def respond(
         response += token
         yield response
 
-
 """
 For information on how to customize the ChatInterface, peruse the gradio docs: https://www.gradio.app/docs/chatinterface
 """
@@ -59,6 +60,9 @@ demo = gr.ChatInterface(
     ],
 )
 
+@app.route('/')
+def home():
+    return demo.launch(inline=True)
 
 if __name__ == "__main__":
-    demo.launch()
+    app.run(debug=True)
