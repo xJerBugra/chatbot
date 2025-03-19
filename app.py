@@ -5,7 +5,7 @@ from flask import Flask
 """
 For more information on `huggingface_hub` Inference API support, please check the docs: https://huggingface.co/docs/huggingface_hub/v0.22.2/en/guides/inference
 """
-client = InferenceClient("HuggingFaceH4/zephyr-7b-beta")
+client = InferenceClient("https://huggingface.co/spaces/rishikasharma/Chatbot")
 
 app = Flask(__name__)
 
