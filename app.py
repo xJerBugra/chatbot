@@ -1,68 +1,30 @@
-import gradio as gr
-from huggingface_hub import InferenceClient
-from flask import Flask
-
-"""
-For more information on `huggingface_hub` Inference API support, please check the docs: https://huggingface.co/docs/huggingface_hub/v0.22.2/en/guides/inference
-"""
-client = InferenceClient("https://huggingface.co/spaces/rishikasharma/Chatbot")
+from flask import Flask, request, jsonify
+from gradio_client import Client
 
 app = Flask(__name__)
 
-def respond(
-    message,
-    history: list[tuple[str, str]],
-    system_message,
-    max_tokens,
-    temperature,
-    top_p,
-):
-    messages = [{"role": "system", "content": system_message}]
+# Hugging Face Gradio Client - Buraya Kendi Modelinin ID'sini Gir
+client = Client("rishikasharma/Chatbot") 
 
-    for val in history:
-        if val[0]:
-            messages.append({"role": "user", "content": val[0]})
-        if val[1]:
-            messages.append({"role": "assistant", "content": val[1]})
+@app.route("/chat", methods=["POST"])
+def chat():
+    try:
+        data = request.get_json()
+        user_message = data.get("message", "").strip()
 
-    messages.append({"role": "user", "content": message})
+        if not user_message:
+            return jsonify({"error": "Message cannot be empty."}), 400
 
-    response = ""
+        # API ile Gradio Modeline Mesaj Gönderme
+        response = client.predict(
+            message=user_message,
+            api_name="/chat"  # API endpoint'inin doğru olduğundan emin ol
+        )
 
-    for message in client.chat_completion(
-        messages,
-        max_tokens=max_tokens,
-        stream=True,
-        temperature=temperature,
-        top_p=top_p,
-    ):
-        token = message.choices[0].delta.content
+        return jsonify({"response": response})
 
-        response += token
-        yield response
-
-"""
-For information on how to customize the ChatInterface, peruse the gradio docs: https://www.gradio.app/docs/chatinterface
-"""
-demo = gr.ChatInterface(
-    respond,
-    additional_inputs=[
-        gr.Textbox(value="You are a friendly Chatbot.", label="System message"),
-        # gr.Slider(minimum=1, maximum=2048, value=512, step=1, label="Max new tokens"),
-        # gr.Slider(minimum=0.1, maximum=4.0, value=0.7, step=0.1, label="Temperature"),
-        # gr.Slider(
-        #     minimum=0.1,
-        #     maximum=1.0,
-        #     value=0.95,
-        #     step=0.05,
-        #     label="Top-p (nucleus sampling)",
-        # ),
-    ],
-)
-
-@app.route('/')
-def home():
-    return demo.launch(inline=True)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(host="0.0.0.0", port=5000, debug=True)
